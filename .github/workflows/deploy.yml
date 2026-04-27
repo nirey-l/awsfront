@@ -37,7 +37,10 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: latest
       run: |
-        docker build --build-arg REACT_APP_API_BASE_URL=${{ secrets.REACT_APP_API_BASE_URL }} -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker build \
+          --build-arg REACT_APP_API_BASE_URL=${{ secrets.REACT_APP_API_BASE_URL }} \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+          .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
@@ -50,7 +53,7 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         envs: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
         script: |
-          aws ecr get-login-password --region us-west-1 | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+          aws ecr get-login-password --region $AWS_REGION | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
           
           # 기존 컨테이너 중지 및 삭제
           sudo docker stop frontend-app || true
@@ -59,7 +62,3 @@ jobs:
           # 새 이미지 Pull 및 실행 (80포트로 서비스)
           sudo docker pull ${{ steps.login-ecr.outputs.registry }}/aws-lab-frontend:latest
           sudo docker run -d --name frontend-app -p 80:80 ${{ steps.login-ecr.outputs.registry }}/aws-lab-frontend:latest
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: us-west-1
